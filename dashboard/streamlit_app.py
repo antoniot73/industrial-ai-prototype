@@ -1,15 +1,10 @@
-"""
-streamlit_app.py
-Dashboard industrial.
-"""
+import os
 
 import pandas as pd
-import requests
-import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-
-import os
+import requests
+import streamlit as st
 
 API_URL = os.getenv(
     "API_URL",
@@ -34,31 +29,67 @@ refresh_rate = st.sidebar.slider(
 
 try:
 
-    current = requests.get(
-        f"{API_URL}/current"
-    ).json()
+    current_response = requests.get(
+        f"{API_URL}/current",
+        timeout=15
+    )
 
-    history = requests.get(
-        f"{API_URL}/history?limit=100"
-    ).json()
+    st.sidebar.write(
+        f"API STATUS CURRENT: {current_response.status_code}"
+    )
+
+    current_response.raise_for_status()
+
+    current = current_response.json()
+
+    history_response = requests.get(
+        f"{API_URL}/history?limit=100",
+        timeout=15
+    )
+
+    st.sidebar.write(
+        f"API STATUS HISTORY: {history_response.status_code}"
+    )
+
+    history_response.raise_for_status()
+
+    history = history_response.json()
 
     df = pd.DataFrame(history)
 
     if not df.empty:
 
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df["timestamp"] = pd.to_datetime(
+            df["timestamp"]
+        )
 
-        df = df.sort_values("timestamp")
+        df = df.sort_values(
+            "timestamp"
+        )
 
-except Exception as exc:
+except requests.exceptions.RequestException as exc:
 
-    st.error(f"Error conectando con FastAPI: {exc}")
+    st.error(
+        f"Error HTTP conectando con FastAPI: {exc}"
+    )
 
     st.stop()
 
-# ---------------------------------------------------
-# KPIs
-# ---------------------------------------------------
+except ValueError as exc:
+
+    st.error(
+        f"Error JSON FastAPI: {exc}"
+    )
+
+    st.stop()
+
+except Exception as exc:
+
+    st.error(
+        f"Error general dashboard: {exc}"
+    )
+
+    st.stop()
 
 st.header("Variables Tiempo Real")
 
@@ -85,10 +116,6 @@ col4.metric(
 )
 
 st.divider()
-
-# ---------------------------------------------------
-# Tendencias
-# ---------------------------------------------------
 
 st.header("Tendencias Históricas")
 
@@ -117,10 +144,6 @@ st.plotly_chart(
 )
 
 st.divider()
-
-# ---------------------------------------------------
-# Gauges
-# ---------------------------------------------------
 
 st.header("Indicadores Industriales")
 
@@ -160,10 +183,6 @@ with g2:
 
 st.divider()
 
-# ---------------------------------------------------
-# Tabla histórica
-# ---------------------------------------------------
-
 st.header("Últimos Registros")
 
 st.dataframe(
@@ -175,24 +194,25 @@ st.caption(
     f"Frecuencia recomendada: {refresh_rate} segundos"
 )
 
-# ---------------------------------------------------
-# Machine Learning Industrial
-# ---------------------------------------------------
-
 st.divider()
 
 st.header("Predicción IA Industrial")
 
 try:
 
-    prediction = requests.get(
+    prediction_response = requests.get(
         f"{API_URL}/predict",
         params={
             "presion": current["presion"],
             "flujo": current["flujo"],
             "vibracion": current["vibracion"]
-        }
-    ).json()
+        },
+        timeout=15
+    )
+
+    prediction_response.raise_for_status()
+
+    prediction = prediction_response.json()
 
     if "temperatura_predicha" in prediction:
 
@@ -224,7 +244,10 @@ try:
     else:
 
         st.warning(
-            prediction["message"]
+            prediction.get(
+                "message",
+                "No fue posible generar predicción."
+            )
         )
 
 except Exception as exc:
@@ -232,4 +255,3 @@ except Exception as exc:
     st.error(
         f"Error módulo IA: {exc}"
     )
-    
