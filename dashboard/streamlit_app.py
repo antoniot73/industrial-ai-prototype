@@ -1,4 +1,5 @@
 import os
+import time
 
 import pandas as pd
 import plotly.express as px
@@ -6,10 +7,18 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 
+# ---------------------------------------------------
+# API URL
+# ---------------------------------------------------
+
 API_URL = os.getenv(
     "API_URL",
     "https://industrial-ai-api-5ypf.onrender.com"
 )
+
+# ---------------------------------------------------
+# STREAMLIT CONFIG
+# ---------------------------------------------------
 
 st.set_page_config(
     page_title="Industrial AI Prototype",
@@ -17,6 +26,10 @@ st.set_page_config(
 )
 
 st.title("Industrial AI Prototype Dashboard")
+
+# ---------------------------------------------------
+# SIDEBAR
+# ---------------------------------------------------
 
 st.sidebar.header("Configuración")
 
@@ -27,12 +40,48 @@ refresh_rate = st.sidebar.slider(
     value=10
 )
 
+# ---------------------------------------------------
+# FASTAPI CONNECTION
+# ---------------------------------------------------
+
 try:
 
-    current_response = requests.get(
-        f"{API_URL}/current",
-        timeout=15
-    )
+    # -----------------------------------------------
+    # CURRENT ENDPOINT WITH RETRIES
+    # -----------------------------------------------
+
+    MAX_RETRIES = 5
+
+    current_response = None
+
+    for attempt in range(MAX_RETRIES):
+
+        try:
+
+            current_response = requests.get(
+                f"{API_URL}/current",
+                timeout=20
+            )
+
+            if current_response.status_code == 200:
+                break
+
+        except Exception:
+            pass
+
+        st.warning(
+            f"Esperando activación API Render... intento {attempt + 1}"
+        )
+
+        time.sleep(5)
+
+    if current_response is None:
+
+        st.error(
+            "No fue posible conectar con FastAPI."
+        )
+
+        st.stop()
 
     st.sidebar.write(
         f"API STATUS CURRENT: {current_response.status_code}"
@@ -40,11 +89,27 @@ try:
 
     current_response.raise_for_status()
 
-    current = current_response.json()
+    try:
+
+        current = current_response.json()
+
+    except Exception as exc:
+
+        st.error(
+            f"Error parseando JSON API: {exc}"
+        )
+
+        st.write(current_response.text)
+
+        st.stop()
+
+    # -----------------------------------------------
+    # HISTORY ENDPOINT
+    # -----------------------------------------------
 
     history_response = requests.get(
         f"{API_URL}/history?limit=100",
-        timeout=15
+        timeout=20
     )
 
     st.sidebar.write(
@@ -54,6 +119,10 @@ try:
     history_response.raise_for_status()
 
     history = history_response.json()
+
+    # -----------------------------------------------
+    # DATAFRAME
+    # -----------------------------------------------
 
     df = pd.DataFrame(history)
 
@@ -91,6 +160,10 @@ except Exception as exc:
 
     st.stop()
 
+# ---------------------------------------------------
+# REAL-TIME KPIs
+# ---------------------------------------------------
+
 st.header("Variables Tiempo Real")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -116,6 +189,10 @@ col4.metric(
 )
 
 st.divider()
+
+# ---------------------------------------------------
+# HISTORICAL TRENDS
+# ---------------------------------------------------
 
 st.header("Tendencias Históricas")
 
@@ -144,6 +221,10 @@ st.plotly_chart(
 )
 
 st.divider()
+
+# ---------------------------------------------------
+# INDUSTRIAL GAUGES
+# ---------------------------------------------------
 
 st.header("Indicadores Industriales")
 
@@ -183,6 +264,10 @@ with g2:
 
 st.divider()
 
+# ---------------------------------------------------
+# HISTORICAL TABLE
+# ---------------------------------------------------
+
 st.header("Últimos Registros")
 
 st.dataframe(
@@ -193,6 +278,10 @@ st.dataframe(
 st.caption(
     f"Frecuencia recomendada: {refresh_rate} segundos"
 )
+
+# ---------------------------------------------------
+# MACHINE LEARNING
+# ---------------------------------------------------
 
 st.divider()
 
@@ -207,7 +296,7 @@ try:
             "flujo": current["flujo"],
             "vibracion": current["vibracion"]
         },
-        timeout=15
+        timeout=20
     )
 
     prediction_response.raise_for_status()
