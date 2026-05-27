@@ -1,0 +1,5 @@
+Agregar en app/main.py:
+
+from app.api_ml import router_ml
+
+app.include_router(router_ml)

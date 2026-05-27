@@ -45,6 +45,7 @@ def current_data():
         )
 
         if dato is None:
+
             return {
                 "temperatura": 0,
                 "presion": 0,
@@ -64,7 +65,7 @@ def current_data():
     "/history",
     response_model=list[ProcessDataSchema]
 )
-def history(limit: int = 20):
+def history(limit: int = 100):
 
     db = SessionLocal()
 

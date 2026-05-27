@@ -9,10 +9,7 @@ from fastapi import FastAPI
 
 from app.database import engine
 from app.models import Base
-
 from app.api import router
-from app.api_ml import router_ml
-
 from app.simulator import iniciar_simulacion
 
 
@@ -22,11 +19,7 @@ app = FastAPI(
     title="Industrial AI Prototype"
 )
 
-# Routers principales
 app.include_router(router)
-
-# Router Machine Learning
-app.include_router(router_ml)
 
 
 @app.on_event("startup")
@@ -41,4 +34,3 @@ def startup_event():
     )
 
     hilo.start()
-    
