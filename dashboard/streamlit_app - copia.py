@@ -13,7 +13,7 @@ import os
 
 API_URL = os.getenv(
     "API_URL",
-    "https://industrial-ai-api-5ypf.onrender.com"
+    "http://127.0.0.1:8000"
 )
 
 st.set_page_config(
