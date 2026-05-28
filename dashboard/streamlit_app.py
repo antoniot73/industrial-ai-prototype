@@ -294,7 +294,13 @@ st.caption(
 
 st.divider()
 
-st.header("Predicción IA Industrial")
+st.header(
+    "Predicción IA Industrial — Machine Learning Supervisado"
+)
+
+st.caption(
+    "Modelo RandomForestRegressor aplicado a regresión industrial para predicción de temperatura usando presión, flujo y vibración."
+)
 
 try:
 
