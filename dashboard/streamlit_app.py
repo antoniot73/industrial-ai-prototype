@@ -26,6 +26,15 @@ st.set_page_config(
 )
 
 st.title("Industrial AI Prototype Dashboard")
+st.markdown(
+    """
+    ### Application Integrator: Antonio Toro
+    
+    GitHub repository:
+    
+    https://github.com/antoniot73/industrial-ai-prototype
+    """
+)
 
 # ---------------------------------------------------
 # SIDEBAR
